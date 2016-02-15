@@ -236,11 +236,15 @@ function x_form_render_select($form, $name, array &$read, $options, $groups, $ad
 
         if(!empty($groups) && is_array($groups)) {
             foreach($groups as $group_label => $group_keys) {
-                $html .= '<optgroup label="'.x_form_helper_xml($group_label).'">'."\n";
+                if($group_label != '') {
+                    $html .= '<optgroup label="'.x_form_helper_xml($group_label).'">'."\n";
+                }
                 foreach($group_keys as $v) {
                     $html .= '<option value="'.x_form_helper_xml($v).'"'.($value == $v ? ' selected="selected"' : '').'>'.x_form_helper_xml($options[$v]).'</option>'."\n";
                 }
-                $html .= '</optgroup>'."\n";
+                if($group_label != '') {
+                    $html .= '</optgroup>'."\n";
+                }
             }
         } else {
             foreach($options as $v => $t) {
