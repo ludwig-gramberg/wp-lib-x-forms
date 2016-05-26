@@ -492,3 +492,66 @@ function x_form_render_textarea($form, $name, array &$read, $required, $addition
         return x_form_render_exception($e);
     }
 }
+
+function x_form_render_file($form, $name, $required, $additionalHtml = '', array &$write = null, array &$errors = null, $validate = null) {
+
+    $validateCallback = function($value, &$validated) use ($validate) {
+        $validated = false;
+        foreach((array)$validate as $validator) {
+            $validated = true;
+            if(is_callable($validator)) {
+                $result = $validator($value);
+            } elseif(is_string($validator) && function_exists('x_form_validate_'.$validator)) {
+                $result = call_user_func('x_form_validate_'.$validator, $value);
+            } elseif(is_string($validator) && function_exists($validator)) {
+                $result = call_user_func($validator, $value);
+            } else {
+                throw new Exception('unknown validator '.$validator);
+            }
+            if($result !== null) {
+                return $result;
+            }
+        }
+        return null;
+    };
+
+    try {
+        $html = '';
+
+        $dataAttr = array('required' => $required ? 'true' : 'false');
+
+        if(x_form_is_submit($form)) {
+
+            $value = array_key_exists($name, $_FILES) ? $_FILES[$name] : array();
+
+            // validate
+            $validated = false;
+            if($validate !== null) {
+                $result = $validateCallback($value, $validated);
+                $dataAttr['validated'] = $validated ? 'true' : 'false';
+                $dataAttr['valid'] = $result === null ? 'true' : 'false';
+                if($result !== null) {
+                    $dataAttr['error'] = $result;
+                    $errors[$name] = $result;
+                }
+            }
+
+            // write result back to array if valid
+            if($result === null && is_array($write)) {
+                $write[$name] = $value;
+            }
+        }
+
+        $html .= '<input type="file" name="'.x_form_helper_xml($name).'" ';
+        foreach($dataAttr as $k => $v) {
+            $html .= 'data-'.$k.'="'.x_form_helper_xml($v).'" ';
+        }
+        $html .= $additionalHtml;
+        $html .= '/>';
+
+        return $html;
+
+    } catch(Exception $e) {
+        return x_form_render_exception($e);
+    }
+}
